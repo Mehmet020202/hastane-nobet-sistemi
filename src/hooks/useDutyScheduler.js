@@ -10,7 +10,72 @@ const useDutyScheduler = () => {
     
     if (doctorCount === 0) return { duty_24h: 0, duty_16h: 0, morning: 0, evening: 0, night: 0 }
     
-    // Ayarlanabilir nöbet sayıları (varsayılan değerler)
+    // Dinamik hesaplama aktif mi?
+    if (settings?.duty_requirements?.dynamic_calculation) {
+      // Aylık günlük nöbetçi sayısını al (varsayılan genel ayar)
+      const monthNames = [
+        'january', 'february', 'march', 'april', 'may', 'june',
+        'july', 'august', 'september', 'october', 'november', 'december'
+      ]
+      const currentMonth = monthNames[month - 1] // month 1-12, array 0-11
+      const monthlyDutyCount = settings?.duty_requirements?.monthly_daily_duty_count?.[currentMonth]
+      const dailyDutyCount = monthlyDutyCount || settings?.duty_requirements?.daily_duty_count || 4
+      
+      // Dinamik hesaplama
+      const totalHoursPerDay = dailyDutyCount * 24 // Günlük toplam saat (4 kişi × 24 saat = 96 saat)
+      const totalHoursPerMonth = daysInMonth * totalHoursPerDay // Aylık toplam saat
+      const hoursPerDoctor = totalHoursPerMonth / doctorCount // Doktor başına düşen saat
+
+      console.log(`Dinamik Hesaplama: ${daysInMonth} gün, ${doctorCount} doktor, günlük ${dailyDutyCount} nöbetçi`)
+      console.log(`Günlük toplam: ${totalHoursPerDay} saat, Aylık toplam: ${totalHoursPerMonth} saat`)
+      console.log(`Doktor başına: ${hoursPerDoctor} saat`)
+
+      // 24 saatlik nöbet sayısı
+      const duty24hPerDoctor = Math.floor(hoursPerDoctor / 24)
+      const remainingHours = hoursPerDoctor - (duty24hPerDoctor * 24)
+      
+      // 16 saatlik nöbet sayısı
+      const duty16hPerDoctor = Math.floor(remainingHours / 16)
+      const finalRemainingHours = remainingHours - (duty16hPerDoctor * 16)
+      
+      // 8 saatlik nöbet sayısı
+      const duty8hPerDoctor = Math.ceil(finalRemainingHours / 8)
+
+      console.log(`Sonuç: 24h=${duty24hPerDoctor}, 16h=${duty16hPerDoctor}, 8h=${duty8hPerDoctor}`)
+
+      // Toplam nöbet saatleri
+      const totalDuty24h = duty24hPerDoctor * doctorCount
+      const totalDuty16h = duty16hPerDoctor * doctorCount
+      const totalDuty8h = duty8hPerDoctor * doctorCount
+      
+      // Günlük vardiya sayıları
+      const dailyShifts = {
+        duty_24h: Math.ceil(totalDuty24h / daysInMonth),
+        duty_16h: Math.ceil(totalDuty16h / daysInMonth),
+        morning: Math.ceil(totalDuty8h * 0.4 / daysInMonth),  // %40 sabah
+        evening: Math.ceil(totalDuty8h * 0.35 / daysInMonth), // %35 akşam
+        night: Math.ceil(totalDuty8h * 0.25 / daysInMonth)    // %25 gece
+      }
+      
+      return {
+        requirements: dailyShifts,
+        perDoctor: {
+          duty_24h: duty24hPerDoctor,
+          duty_16h: duty16hPerDoctor,
+          duty_8h: duty8hPerDoctor,
+          total_8h: duty8hPerDoctor
+        },
+        total: {
+          duty_24h: totalDuty24h,
+          duty_16h: totalDuty16h,
+          duty_8h: totalDuty8h,
+          total_8h: totalDuty8h,
+          remaining_hours: finalRemainingHours
+        }
+      }
+    }
+    
+    // Sabit değerler kullan (eski sistem)
     const duty24hPerDoctor = settings?.duty_requirements?.duty_24h_per_doctor || 6
     const duty16hPerDoctor = settings?.duty_requirements?.duty_16h_per_doctor || 2
     const duty8hPerDoctor = settings?.duty_requirements?.enable_8h_duties ? (settings?.duty_requirements?.duty_8h_per_doctor || 0) : 0
@@ -32,8 +97,9 @@ const useDutyScheduler = () => {
     
     // Kalan saatler için 8 saatlik vardiyalar (sadece auto_fill aktifse)
     let totalExtra8hShifts = 0
+    let remainingHours = 0
     if (autoFill8h) {
-      const remainingHours = Math.max(0, totalRequiredHours - totalFixedHours)
+      remainingHours = Math.max(0, totalRequiredHours - totalFixedHours)
       totalExtra8hShifts = Math.ceil(remainingHours / 8)
     }
     
@@ -65,7 +131,7 @@ const useDutyScheduler = () => {
       total: {
         duty_24h: totalDuty24h,
         duty_16h: totalDuty16h,
-        duty_8h: totalDuty8h,
+        duty_8h: duty8hPerDoctor * doctorCount,
         total_8h: total8hShifts,
         remaining_hours: remainingHours
       }

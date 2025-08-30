@@ -268,6 +268,79 @@ const DutySettings = () => {
           </div>
           
           {settings.dynamic_calculation && (
+            <div className="mt-4 p-4 border rounded-lg">
+              <h4 className="font-semibold mb-3">Dinamik Hesaplama Ayarları:</h4>
+              <div className="space-y-3">
+                <div>
+                  <Label>Günlük Nöbetçi Sayısı</Label>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="10"
+                    value={settings.duty_requirements.daily_duty_count || 4}
+                    onChange={(e) => setSettings(prev => ({
+                      ...prev,
+                      duty_requirements: {
+                        ...prev.duty_requirements,
+                        daily_duty_count: parseInt(e.target.value) || 4
+                      }
+                    }))}
+                    className="mt-1"
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Günlük kaç kişinin nöbet tutacağını belirler. Varsayılan: 4 kişi
+                  </p>
+                </div>
+                
+                <div>
+                  <Label>Aylık Günlük Nöbetçi Sayısı</Label>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 mt-2">
+                    {[
+                      { name: 'Ocak', key: 'january' },
+                      { name: 'Şubat', key: 'february' },
+                      { name: 'Mart', key: 'march' },
+                      { name: 'Nisan', key: 'april' },
+                      { name: 'Mayıs', key: 'may' },
+                      { name: 'Haziran', key: 'june' },
+                      { name: 'Temmuz', key: 'july' },
+                      { name: 'Ağustos', key: 'august' },
+                      { name: 'Eylül', key: 'september' },
+                      { name: 'Ekim', key: 'october' },
+                      { name: 'Kasım', key: 'november' },
+                      { name: 'Aralık', key: 'december' }
+                    ].map(month => (
+                      <div key={month.key} className="flex items-center space-x-2">
+                        <Input
+                          type="number"
+                          min="1"
+                          max="10"
+                          placeholder="4"
+                          value={settings.duty_requirements.monthly_daily_duty_count?.[month.key] || ''}
+                          onChange={(e) => setSettings(prev => ({
+                            ...prev,
+                            duty_requirements: {
+                              ...prev.duty_requirements,
+                              monthly_daily_duty_count: {
+                                ...prev.duty_requirements.monthly_daily_duty_count,
+                                [month.key]: parseInt(e.target.value) || null
+                              }
+                            }
+                          }))}
+                          className="w-16 text-xs"
+                        />
+                        <span className="text-xs text-muted-foreground">{month.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Her ay için ayrı günlük nöbetçi sayısı belirleyebilirsiniz. Boş bırakırsanız genel ayar kullanılır.
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+          
+          {settings.dynamic_calculation && (
             <div className="space-y-4">
               {/* Nöbet Gereksinimleri Ayarları */}
               <div className="p-4 border rounded-lg">
@@ -428,39 +501,50 @@ const DutySettings = () => {
                 <div className="mt-4 p-3 bg-blue-50 rounded-lg">
                   <h5 className="font-semibold text-blue-800 mb-2">Örnek Günlük Dağılım:</h5>
                   <div className="text-sm text-blue-700 space-y-1">
-                    <div>• 24 saatlik nöbet: {settings.duty_requirements.daily_24h_count} kişi ({settings.duty_requirements.daily_24h_count * 24} saat)</div>
-                    <div>• 16 saatlik nöbet: {settings.duty_requirements.daily_16h_count} kişi ({settings.duty_requirements.daily_16h_count * 16} saat)</div>
-                    {settings.duty_requirements.auto_fill_8h && (
+                    {settings.dynamic_calculation ? (
                       <>
-                        {(() => {
-                          const total24hHours = settings.duty_requirements.daily_24h_count * 24
-                          const total16hHours = settings.duty_requirements.daily_16h_count * 16
-                          const remainingHours = 24 - total24hHours - total16hHours
-                          const total8hShifts = Math.max(0, Math.ceil(remainingHours / 8))
-                          const morningShifts = Math.ceil(total8hShifts * 0.4)
-                          const eveningShifts = Math.ceil(total8hShifts * 0.35)
-                          const nightShifts = Math.ceil(total8hShifts * 0.25)
-                          const calculatedTotal = morningShifts + eveningShifts + nightShifts
-                          const difference = total8hShifts - calculatedTotal
-                          const finalNightShifts = nightShifts + (difference > 0 ? difference : 0)
-                          
-                          return (
-                            <>
-                              <div>• Kalan saat: {remainingHours} saat</div>
-                              {remainingHours < 0 ? (
-                                <div className="text-red-600 font-semibold">⚠️ Uyarı: Günlük saat 24'ü aşıyor!</div>
-                              ) : (
+                        <div>• Genel günlük nöbetçi sayısı: {settings.duty_requirements.daily_duty_count || 4} kişi</div>
+                        <div>• Aylık özel ayarlar: {Object.keys(settings.duty_requirements.monthly_daily_duty_count || {}).filter(key => settings.duty_requirements.monthly_daily_duty_count[key]).length} ay</div>
+                        <div>• Günlük toplam saat: {(settings.duty_requirements.daily_duty_count || 4) * 24} saat</div>
+                        <div className="font-semibold">• Sistem otomatik olarak 24h, 16h ve 8h nöbetleri hesaplayacak</div>
+                      </>
+                    ) : (
+                      <>
+                        <div>• 24 saatlik nöbet: {settings.duty_requirements.daily_24h_count} kişi ({settings.duty_requirements.daily_24h_count * 24} saat)</div>
+                        <div>• 16 saatlik nöbet: {settings.duty_requirements.daily_16h_count} kişi ({settings.duty_requirements.daily_16h_count * 16} saat)</div>
+                        {settings.duty_requirements.auto_fill_8h && (
+                          <>
+                            {(() => {
+                              const total24hHours = settings.duty_requirements.daily_24h_count * 24
+                              const total16hHours = settings.duty_requirements.daily_16h_count * 16
+                              const remainingHours = 24 - total24hHours - total16hHours
+                              const total8hShifts = Math.max(0, Math.ceil(remainingHours / 8))
+                              const morningShifts = Math.ceil(total8hShifts * 0.4)
+                              const eveningShifts = Math.ceil(total8hShifts * 0.35)
+                              const nightShifts = Math.ceil(total8hShifts * 0.25)
+                              const calculatedTotal = morningShifts + eveningShifts + nightShifts
+                              const difference = total8hShifts - calculatedTotal
+                              const finalNightShifts = nightShifts + (difference > 0 ? difference : 0)
+                              
+                              return (
                                 <>
-                                  <div>• 8 saatlik vardiyalar: {total8hShifts} kişi ({remainingHours} saat)</div>
-                                  <div>• Sabah vardiyası: {morningShifts} kişi</div>
-                                  <div>• Akşam vardiyası: {eveningShifts} kişi</div>
-                                  <div>• Gece vardiyası: {finalNightShifts} kişi</div>
+                                  <div>• Kalan saat: {remainingHours} saat</div>
+                                  {remainingHours < 0 ? (
+                                    <div className="text-red-600 font-semibold">⚠️ Uyarı: Günlük saat 24'ü aşıyor!</div>
+                                  ) : (
+                                    <>
+                                      <div>• 8 saatlik vardiyalar: {total8hShifts} kişi ({remainingHours} saat)</div>
+                                      <div>• Sabah vardiyası: {morningShifts} kişi</div>
+                                      <div>• Akşam vardiyası: {eveningShifts} kişi</div>
+                                      <div>• Gece vardiyası: {finalNightShifts} kişi</div>
+                                    </>
+                                  )}
+                                  <div className="font-semibold">• Toplam: {total24hHours + total16hHours + Math.max(0, remainingHours)} saat</div>
                                 </>
-                              )}
-                              <div className="font-semibold">• Toplam: {total24hHours + total16hHours + Math.max(0, remainingHours)} saat</div>
-                            </>
-                          )
-                        })()}
+                              )
+                            })()}
+                          </>
+                        )}
                       </>
                     )}
                   </div>
