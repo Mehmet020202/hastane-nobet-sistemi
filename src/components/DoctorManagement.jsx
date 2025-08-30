@@ -46,7 +46,7 @@ const DoctorManagement = () => {
     if (isDBReady) {
       loadDoctors()
     }
-  }, [isDBReady]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [isDBReady])
 
   const loadDoctors = async () => {
     try {
@@ -54,16 +54,7 @@ const DoctorManagement = () => {
       const doctorList = await getDoctors()
       console.log('getDoctors sonucu:', doctorList)
       console.log('doctors state güncelleniyor...')
-      
-      // State güncellemesini zorla
-      setDoctors([...doctorList])
-      
-      // State güncellemesini kontrol et
-      setTimeout(() => {
-        console.log('doctors state kontrol ediliyor...')
-        console.log('Mevcut doctors state:', doctors)
-      }, 100)
-      
+      setDoctors(doctorList)
       console.log('doctors state güncellendi, yeni değer:', doctorList)
     } catch (error) {
       console.error('Error loading doctors:', error)
@@ -108,11 +99,11 @@ const DoctorManagement = () => {
         alert('Doktor başarıyla eklendi!')
       }
       
+      // Doktorları yeniden yükle ve state'i güncelle
       console.log('Doktorlar yeniden yükleniyor...')
-      await loadDoctors()
-      
-      // State güncellemesini bekle
-      await new Promise(resolve => setTimeout(resolve, 200))
+      const updatedDoctors = await getDoctors()
+      console.log('Güncel doktor listesi:', updatedDoctors)
+      setDoctors(updatedDoctors)
       
       console.log('Form reset ediliyor...')
       resetForm()

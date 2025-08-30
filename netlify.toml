@@ -13,12 +13,12 @@
   status = 200
 
 [[headers]]
-  for = "/*.js"
+  for = "*.js"
   [headers.values]
     Content-Type = "application/javascript"
 
 [[headers]]
-  for = "/*.css"
+  for = "*.css"
   [headers.values]
     Content-Type = "text/css"
 
@@ -29,16 +29,3 @@
 
 [build.processing]
   skip_processing = false
-
-[functions]
-  directory = "functions"
-
-[[headers]]
-  for = "/assets/*.js"
-  [headers.values]
-    Content-Type = "application/javascript"
-
-[[headers]]
-  for = "/assets/*.css"
-  [headers.values]
-    Content-Type = "text/css"
