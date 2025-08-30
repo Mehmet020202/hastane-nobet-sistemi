@@ -31,11 +31,13 @@ const DoctorManagement = () => {
     if (isDBReady) {
       loadDoctors()
     }
-  }, [isDBReady])
+  }, [isDBReady]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadDoctors = async () => {
     try {
+      console.log('Doktorlar yükleniyor...')
       const doctorList = await getDoctors()
+      console.log('Yüklenen doktorlar:', doctorList)
       setDoctors(doctorList)
     } catch (error) {
       console.error('Error loading doctors:', error)
@@ -43,13 +45,19 @@ const DoctorManagement = () => {
   }
 
   const handleSubmit = async (e) => {
+    console.log('Form submit başladı')
     e.preventDefault()
+    
+    console.log('Form data:', formData)
     
     // Form validasyonu
     if (!formData.name.trim() || !formData.specialty.trim()) {
+      console.log('Form validasyonu başarısız')
       alert('Lütfen doktor adı ve branşını girin!')
       return
     }
+    
+    console.log('Form validasyonu başarılı')
     
     try {
       const doctorData = {
@@ -58,17 +66,23 @@ const DoctorManagement = () => {
         blue_days: formData.has_blue_days ? formData.blue_days : []
       }
 
+      console.log('Doktor ekleniyor:', doctorData)
+
       if (editingDoctor) {
         await updateDoctor({ ...doctorData, id: editingDoctor.id })
         alert('Doktor başarıyla güncellendi!')
       } else {
-        await addDoctor({
+        const newDoctor = {
           ...doctorData,
           id: crypto.randomUUID(),
           created_at: new Date().toISOString()
-        })
+        }
+        console.log('Yeni doktor:', newDoctor)
+        await addDoctor(newDoctor)
         alert('Doktor başarıyla eklendi!')
       }
+      
+      console.log('Doktorlar yeniden yükleniyor...')
       await loadDoctors()
       resetForm()
       setIsDialogOpen(false)
@@ -343,7 +357,10 @@ const DoctorManagement = () => {
                 <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                   İptal
                 </Button>
-                <Button type="submit">
+                <Button 
+                  type="submit"
+                  onClick={() => console.log('Kaydet butonuna tıklandı')}
+                >
                   <Save className="mr-2 h-4 w-4" />
                   Kaydet
                 </Button>

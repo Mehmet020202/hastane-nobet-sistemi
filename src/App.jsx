@@ -8,6 +8,7 @@ import DoctorManagement from './components/DoctorManagement.jsx'
 import DutyCalendar from './components/DutyCalendar.jsx'
 import DutySettings from './components/DutySettings.jsx'
 import ExportPage from './components/ExportPage.jsx'
+import DebugPage from './components/DebugPage.jsx'
 import './App.css'
 
 function App() {
@@ -32,6 +33,7 @@ function App() {
     { id: 'doctors', name: 'Doktor Yönetimi', icon: Users },
     { id: 'settings', name: 'Ayarlar', icon: Settings },
     { id: 'export', name: 'Dışa Aktar', icon: FileText },
+    { id: 'debug', name: 'Debug', icon: Settings },
   ]
 
   const renderPage = () => {
@@ -44,6 +46,8 @@ function App() {
         return <DutySettings />
       case 'export':
         return <ExportPage />
+      case 'debug':
+        return <DebugPage />
       default:
         return <DutyCalendar />
     }

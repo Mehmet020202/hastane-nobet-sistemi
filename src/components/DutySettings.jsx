@@ -514,35 +514,42 @@ const DutySettings = () => {
                         <div>• 16 saatlik nöbet: {settings.duty_requirements.daily_16h_count} kişi ({settings.duty_requirements.daily_16h_count * 16} saat)</div>
                         {settings.duty_requirements.auto_fill_8h && (
                           <>
-                            {(() => {
-                              const total24hHours = settings.duty_requirements.daily_24h_count * 24
-                              const total16hHours = settings.duty_requirements.daily_16h_count * 16
-                              const remainingHours = 24 - total24hHours - total16hHours
-                              const total8hShifts = Math.max(0, Math.ceil(remainingHours / 8))
-                              const morningShifts = Math.ceil(total8hShifts * 0.4)
-                              const eveningShifts = Math.ceil(total8hShifts * 0.35)
-                              const nightShifts = Math.ceil(total8hShifts * 0.25)
-                              const calculatedTotal = morningShifts + eveningShifts + nightShifts
-                              const difference = total8hShifts - calculatedTotal
-                              const finalNightShifts = nightShifts + (difference > 0 ? difference : 0)
-                              
-                              return (
+                                                    {(() => {
+                          const total24hHours = settings.duty_requirements.daily_24h_count * 24
+                          const total16hHours = settings.duty_requirements.daily_16h_count * 16
+                          
+                          // 16 saatlik nöbetçiler sadece gündüz (08:00-00:00) çalışır
+                          const dayHours = 16
+                          const totalDutyHours = (settings.duty_requirements.daily_24h_count * 24) + (settings.duty_requirements.daily_16h_count * dayHours)
+                          const remainingHours = 24 - totalDutyHours
+                          const total8hShifts = Math.max(0, Math.ceil(remainingHours / 8))
+                          const morningShifts = Math.ceil(total8hShifts * 0.4)
+                          const eveningShifts = Math.ceil(total8hShifts * 0.35)
+                          const nightShifts = Math.ceil(total8hShifts * 0.25)
+                          const calculatedTotal = morningShifts + eveningShifts + nightShifts
+                          const difference = total8hShifts - calculatedTotal
+                          const finalNightShifts = nightShifts + (difference > 0 ? difference : 0)
+                          
+                          return (
+                            <>
+                              <div>• 24 saatlik nöbetçiler: {settings.duty_requirements.daily_24h_count} kişi (24 saat)</div>
+                              <div>• 16 saatlik nöbetçiler: {settings.duty_requirements.daily_16h_count} kişi (08:00-00:00)</div>
+                              <div>• 00:00-08:00 arası: {settings.duty_requirements.daily_24h_count} kişi (sadece 24h nöbetçiler)</div>
+                              <div>• Kalan saat: {remainingHours} saat</div>
+                              {remainingHours < 0 ? (
+                                <div className="text-red-600 font-semibold">⚠️ Uyarı: Günlük saat 24'ü aşıyor!</div>
+                              ) : (
                                 <>
-                                  <div>• Kalan saat: {remainingHours} saat</div>
-                                  {remainingHours < 0 ? (
-                                    <div className="text-red-600 font-semibold">⚠️ Uyarı: Günlük saat 24'ü aşıyor!</div>
-                                  ) : (
-                                    <>
-                                      <div>• 8 saatlik vardiyalar: {total8hShifts} kişi ({remainingHours} saat)</div>
-                                      <div>• Sabah vardiyası: {morningShifts} kişi</div>
-                                      <div>• Akşam vardiyası: {eveningShifts} kişi</div>
-                                      <div>• Gece vardiyası: {finalNightShifts} kişi</div>
-                                    </>
-                                  )}
-                                  <div className="font-semibold">• Toplam: {total24hHours + total16hHours + Math.max(0, remainingHours)} saat</div>
+                                  <div>• 8 saatlik vardiyalar: {total8hShifts} kişi ({remainingHours} saat)</div>
+                                  <div>• Sabah vardiyası: {morningShifts} kişi</div>
+                                  <div>• Akşam vardiyası: {eveningShifts} kişi</div>
+                                  <div>• Gece vardiyası: {finalNightShifts} kişi</div>
                                 </>
-                              )
-                            })()}
+                              )}
+                              <div className="font-semibold">• Toplam: {totalDutyHours + Math.max(0, remainingHours)} saat</div>
+                            </>
+                          )
+                        })()}
                           </>
                         )}
                       </>

@@ -21,6 +21,7 @@ const useIndexedDB = () => {
   }, [])
 
   const initDB = () => {
+    console.log('IndexedDB başlatılıyor...')
     return new Promise((resolve, reject) => {
       const request = indexedDB.open(DB_NAME, DB_VERSION)
 
@@ -31,6 +32,7 @@ const useIndexedDB = () => {
 
       request.onsuccess = (event) => {
         const database = event.target.result
+        console.log('IndexedDB başarıyla açıldı:', database.name, 'version:', database.version)
         resolve(database)
       }
 
@@ -88,29 +90,46 @@ const useIndexedDB = () => {
   }
 
   const executeTransaction = async (storeNames, mode, callback) => {
+    console.log('executeTransaction başladı:', storeNames, mode)
     const database = await getDB()
     return new Promise((resolve, reject) => {
       const transaction = database.transaction(storeNames, mode)
-      transaction.oncomplete = () => resolve()
-      transaction.onerror = (event) => reject(event.target.error)
+      transaction.oncomplete = () => {
+        console.log('Transaction tamamlandı:', storeNames, mode)
+        resolve()
+      }
+      transaction.onerror = (event) => {
+        console.error('Transaction hatası:', event.target.error)
+        reject(event.target.error)
+      }
       callback(transaction)
     })
   }
 
   // Doctor operations
   const addDoctor = async (doctor) => {
+    console.log('addDoctor çağrıldı:', doctor)
     return executeTransaction(['doctors'], 'readwrite', (transaction) => {
       const store = transaction.objectStore('doctors')
-      store.add(doctor)
+      const request = store.add(doctor)
+      request.onsuccess = () => console.log('Doktor başarıyla eklendi:', doctor.id)
+      request.onerror = (event) => console.error('Doktor ekleme hatası:', event.target.error)
     })
   }
 
   const getDoctors = async () => {
+    console.log('getDoctors çağrıldı')
     return executeTransaction(['doctors'], 'readonly', (transaction) => {
       const store = transaction.objectStore('doctors')
       const request = store.getAll()
-      request.onsuccess = (event) => transaction.oncomplete = () => event.target.result
-    }).then(result => result || []) // Ensure it returns an array even if no doctors
+      request.onsuccess = (event) => {
+        console.log('getDoctors sonucu:', event.target.result)
+        transaction.oncomplete = () => event.target.result
+      }
+    }).then(result => {
+      console.log('getDoctors final sonuç:', result || [])
+      return result || []
+    })
   }
 
   const updateDoctor = async (doctor) => {
@@ -245,7 +264,7 @@ const useIndexedDB = () => {
 
   // Backup and restore operations
   const exportAllData = async () => {
-    const database = await getDB()
+    await getDB()
     const backup = {
       version: '1.0',
       timestamp: new Date().toISOString(),
@@ -295,7 +314,7 @@ const useIndexedDB = () => {
       throw new Error('Geçersiz yedek dosyası!')
     }
 
-    const database = await getDB()
+    await getDB()
 
     // Clear all existing data first
     await executeTransaction(['doctors', 'duties', 'settings', 'red_days', 'special_assignments'], 'readwrite', (transaction) => {

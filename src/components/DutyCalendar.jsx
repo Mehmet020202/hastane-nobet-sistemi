@@ -9,7 +9,6 @@ import { useIndexedDB } from '../hooks/useIndexedDB.js'
 import { useDutyScheduler } from '../hooks/useDutyScheduler.js'
 
 const DutyCalendar = () => {
-  const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth())
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear())
   const [duties, setDuties] = useState([])
@@ -20,7 +19,7 @@ const DutyCalendar = () => {
   const [swapTarget, setSwapTarget] = useState(null)
 
   const { getDoctors, getDuties, saveDuties, getSettings } = useIndexedDB()
-  const { generateMonthlySchedule, calculateDutyRequirements } = useDutyScheduler()
+  const { generateMonthlySchedule } = useDutyScheduler()
 
   useEffect(() => {
     loadData()

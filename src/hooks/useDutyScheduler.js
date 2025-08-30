@@ -22,6 +22,8 @@ const useDutyScheduler = () => {
       const dailyDutyCount = monthlyDutyCount || settings?.duty_requirements?.daily_duty_count || 4
       
       // Dinamik hesaplama
+      // Günlük nöbetçi sayısı × 24 saat = toplam günlük saat
+      // Ancak 16 saatlik nöbetçiler sadece gündüz çalışır (08:00-00:00)
       const totalHoursPerDay = dailyDutyCount * 24 // Günlük toplam saat (4 kişi × 24 saat = 96 saat)
       const totalHoursPerMonth = daysInMonth * totalHoursPerDay // Aylık toplam saat
       const hoursPerDoctor = totalHoursPerMonth / doctorCount // Doktor başına düşen saat
@@ -75,15 +77,13 @@ const useDutyScheduler = () => {
       }
     }
     
-    // Sabit değerler kullan (eski sistem)
-    const duty24hPerDoctor = settings?.duty_requirements?.duty_24h_per_doctor || 6
-    const duty16hPerDoctor = settings?.duty_requirements?.duty_16h_per_doctor || 2
-    const duty8hPerDoctor = settings?.duty_requirements?.enable_8h_duties ? (settings?.duty_requirements?.duty_8h_per_doctor || 0) : 0
-    
-    // Günlük nöbet sayıları
-    const daily24hCount = settings?.duty_requirements?.daily_24h_count || 3
-    const daily16hCount = settings?.duty_requirements?.daily_16h_count || 1
-    const autoFill8h = settings?.duty_requirements?.auto_fill_8h || false
+          // Sabit değerler kullan (eski sistem)
+      const duty24hPerDoctor = settings?.duty_requirements?.duty_24h_per_doctor || 6
+      const duty16hPerDoctor = settings?.duty_requirements?.duty_16h_per_doctor || 2
+      const duty8hPerDoctor = settings?.duty_requirements?.enable_8h_duties ? (settings?.duty_requirements?.duty_8h_per_doctor || 0) : 0
+      
+      // Günlük nöbet sayıları
+      const autoFill8h = settings?.duty_requirements?.auto_fill_8h || false
     
     // Toplam nöbet saatleri
     const totalDuty24h = duty24hPerDoctor * doctorCount
@@ -168,7 +168,6 @@ const useDutyScheduler = () => {
 
     // Dinamik vardiya gereksinimleri hesaplama
     const dutyCalculation = calculateDutyRequirements(doctors, year, month, settings)
-    const shiftRequirements = dutyCalculation.requirements
 
     // Generate schedule for each day
     for (let day = 1; day <= daysInMonth; day++) {
@@ -215,13 +214,21 @@ const useDutyScheduler = () => {
       schedule.push(...daySpecialAssignments)
 
       // Günlük nöbet gereksinimleri - 24 saat tamamen doldurulmalı
+      // 16 saatlik nöbet 00:00'da biter, 00:00-08:00 arası sadece 24 saatlik nöbetçiler kalır
       const total24hHours = daily24hCount * 24
       const total16hHours = daily16hCount * 16
-      const remainingHours = 24 - total24hHours - total16hHours
+      
+      // 00:00-08:00 arası (8 saat) sadece 24 saatlik nöbetçiler var
+      const nightHours = 8
+      const dayHours = 16
+      
+      // Günlük toplam nöbetçi saati hesaplama
+      const totalDutyHours = (daily24hCount * 24) + (daily16hCount * dayHours) // 16h nöbetçiler sadece gündüz
+      const remainingHours = 24 - totalDutyHours
       
       // Eğer toplam saat 24'ü aşıyorsa uyarı ver
       if (remainingHours < 0) {
-        console.warn(`Warning: Daily hours exceed 24! 24h: ${total24hHours}, 16h: ${total16hHours}, Total: ${total24hHours + total16hHours}`)
+        console.warn(`Warning: Daily hours exceed 24! 24h: ${total24hHours}, 16h: ${total16hHours}, Total: ${totalDutyHours}`)
       }
       
       // Kalan saatleri 8 saatlik vardiyalarla doldur (minimum 0)
@@ -233,8 +240,9 @@ const useDutyScheduler = () => {
       // Eğer toplam vardiya sayısı hesaplanan sayıdan farklıysa, farkı gece vardiyasına ekle
       const calculatedTotal = morningShifts + eveningShifts + nightShifts
       const difference = total8hShifts - calculatedTotal
+      let finalNightShifts = nightShifts
       if (difference > 0) {
-        nightShifts += difference
+        finalNightShifts += difference
       }
       
       const dailyRequirements = {
@@ -242,7 +250,7 @@ const useDutyScheduler = () => {
         duty_16h: daily16hCount,
         morning: autoFill8h ? morningShifts : 0,
         evening: autoFill8h ? eveningShifts : 0,
-        night: autoFill8h ? nightShifts : 0
+        night: autoFill8h ? finalNightShifts : 0
       }
 
       // Calculate remaining requirements after special assignments
