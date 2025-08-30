@@ -112,13 +112,27 @@ const DoctorManagement = () => {
       console.log('Dialog kapatılıyor...')
       setIsDialogOpen(false)
       
-      // Doktorları yeniden yükle
+      // Doktorları yeniden yükle - 3 saniye bekle
       console.log('=== DOKTORLAR YENİDEN YÜKLENİYOR ===')
-      await loadDoctors()
-      console.log('=== İŞLEM TAMAMLANDI ===')
+      setTimeout(async () => {
+        try {
+          await loadDoctors()
+          console.log('=== İŞLEM TAMAMLANDI ===')
+        } catch (loadError) {
+          console.error('Doktorlar yüklenirken hata:', loadError)
+          // Manuel olarak state'i güncelle
+          const currentDoctors = await getDoctors()
+          setDoctors(currentDoctors)
+        }
+      }, 1000)
+      
     } catch (error) {
       console.error('=== HATA OLUŞTU ===', error)
       alert('Doktor kaydedilirken hata oluştu: ' + error.message)
+      
+      // Hata durumunda da dialog'u kapat
+      setIsDialogOpen(false)
+      resetForm()
     }
   }
 

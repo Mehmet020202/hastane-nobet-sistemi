@@ -151,7 +151,11 @@ const useIndexedDB = () => {
           console.error('getDoctors hatası:', event.target.error)
           reject(event.target.error)
         }
-      }).catch(reject)
+      }).catch((error) => {
+        console.error('executeTransaction hatası (getDoctors):', error)
+        // Hata durumunda boş array döndür
+        resolve([])
+      })
     })
   }
 

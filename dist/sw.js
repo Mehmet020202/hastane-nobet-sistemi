@@ -1,4 +1,4 @@
-const CACHE_NAME = 'nobet-sistemi-v1'
+const CACHE_NAME = 'nobet-sistemi-v2'
 const urlsToCache = [
   '/',
   '/static/js/bundle.js',
