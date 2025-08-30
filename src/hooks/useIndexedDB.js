@@ -94,15 +94,24 @@ const useIndexedDB = () => {
     const database = await getDB()
     return new Promise((resolve, reject) => {
       const transaction = database.transaction(storeNames, mode)
+      let result = null
+      
       transaction.oncomplete = () => {
         console.log('Transaction tamamlandı:', storeNames, mode)
-        resolve()
+        resolve(result)
       }
+      
       transaction.onerror = (event) => {
         console.error('Transaction hatası:', event.target.error)
         reject(event.target.error)
       }
-      callback(transaction)
+      
+      try {
+        result = callback(transaction)
+      } catch (error) {
+        console.error('Callback hatası:', error)
+        reject(error)
+      }
     })
   }
 
@@ -121,7 +130,10 @@ const useIndexedDB = () => {
           console.error('Doktor ekleme hatası:', event.target.error)
           reject(event.target.error)
         }
-      }).catch(reject)
+      }).catch((error) => {
+        console.error('executeTransaction hatası:', error)
+        reject(error)
+      })
     })
   }
 

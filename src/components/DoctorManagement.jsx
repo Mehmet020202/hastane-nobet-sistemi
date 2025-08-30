@@ -104,20 +104,17 @@ const DoctorManagement = () => {
         alert('Doktor başarıyla eklendi!')
       }
       
-      // Doktorları yeniden yükle ve state'i güncelle
-      console.log('=== DOKTORLAR YENİDEN YÜKLENİYOR ===')
-      const updatedDoctors = await getDoctors()
-      console.log('getDoctors sonucu:', updatedDoctors)
-      console.log('Doktor sayısı:', updatedDoctors.length)
-      
-      console.log('setDoctors çağrılıyor...')
-      setDoctors(updatedDoctors)
-      console.log('setDoctors tamamlandı')
-      
+      // Form reset ediliyor
       console.log('Form reset ediliyor...')
       resetForm()
+      
+      // Dialog kapatılıyor
       console.log('Dialog kapatılıyor...')
       setIsDialogOpen(false)
+      
+      // Doktorları yeniden yükle
+      console.log('=== DOKTORLAR YENİDEN YÜKLENİYOR ===')
+      await loadDoctors()
       console.log('=== İŞLEM TAMAMLANDI ===')
     } catch (error) {
       console.error('=== HATA OLUŞTU ===', error)
@@ -167,6 +164,12 @@ const DoctorManagement = () => {
     console.log('resetForm tamamlandı')
   }
 
+  const handleDialogClose = () => {
+    console.log('Dialog kapatılıyor...')
+    setIsDialogOpen(false)
+    resetForm()
+  }
+
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -206,9 +209,12 @@ const DoctorManagement = () => {
           <h2 className="text-2xl font-bold">Doktor Yönetimi</h2>
           <p className="text-muted-foreground">Doktor bilgilerini ekleyin, düzenleyin ve yönetin</p>
         </div>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <Dialog open={isDialogOpen} onOpenChange={handleDialogClose}>
           <DialogTrigger asChild>
-            <Button onClick={resetForm}>
+            <Button onClick={() => {
+              resetForm()
+              setIsDialogOpen(true)
+            }}>
               <Plus className="mr-2 h-4 w-4" />
               Yeni Doktor
             </Button>
@@ -407,7 +413,7 @@ const DoctorManagement = () => {
               </Tabs>
 
               <div className="flex justify-end space-x-2">
-                <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
+                <Button type="button" variant="outline" onClick={handleDialogClose}>
                   İptal
                 </Button>
                 <Button 
