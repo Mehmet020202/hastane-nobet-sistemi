@@ -6,19 +6,25 @@ const DB_VERSION = 1
 const useIndexedDB = () => {
   const dbRef = useRef(null)
   const [isDBReady, setIsDBReady] = useState(false)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   useEffect(() => {
+    if (isInitialized) return
+    
     const openDB = async () => {
       try {
         const database = await initDB()
         dbRef.current = database
         setIsDBReady(true)
+        setIsInitialized(true)
       } catch (error) {
         console.error('Failed to initialize IndexedDB:', error)
+        setIsInitialized(true)
       }
     }
+    
     openDB()
-  }, [])
+  }, [isInitialized])
 
   const initDB = () => {
     console.log('IndexedDB başlatılıyor...')
@@ -77,10 +83,16 @@ const useIndexedDB = () => {
       return dbRef.current
     }
     // Wait for DB to be ready if not already
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
+      let attempts = 0
+      const maxAttempts = 100 // 5 saniye maksimum bekleme
+      
       const checkDB = () => {
+        attempts++
         if (dbRef.current) {
           resolve(dbRef.current)
+        } else if (attempts >= maxAttempts) {
+          reject(new Error('Database initialization timeout'))
         } else {
           setTimeout(checkDB, 50) // Check again after a short delay
         }
@@ -90,73 +102,89 @@ const useIndexedDB = () => {
   }
 
   const executeTransaction = async (storeNames, mode, callback) => {
-    console.log('executeTransaction başladı:', storeNames, mode)
-    const database = await getDB()
-    return new Promise((resolve, reject) => {
-      const transaction = database.transaction(storeNames, mode)
-      let result = null
+    try {
+      console.log('executeTransaction başladı:', storeNames, mode)
+      const database = await getDB()
       
-      transaction.oncomplete = () => {
-        console.log('Transaction tamamlandı:', storeNames, mode)
-        resolve(result)
-      }
-      
-      transaction.onerror = (event) => {
-        console.error('Transaction hatası:', event.target.error)
-        reject(event.target.error)
-      }
-      
-      try {
-        result = callback(transaction)
-      } catch (error) {
-        console.error('Callback hatası:', error)
-        reject(error)
-      }
-    })
+      return new Promise((resolve, reject) => {
+        const transaction = database.transaction(storeNames, mode)
+        let result = null
+        
+        transaction.oncomplete = () => {
+          console.log('Transaction tamamlandı:', storeNames, mode)
+          resolve(result)
+        }
+        
+        transaction.onerror = (event) => {
+          console.error('Transaction hatası:', event.target.error)
+          reject(event.target.error)
+        }
+        
+        try {
+          result = callback(transaction)
+        } catch (error) {
+          console.error('Callback hatası:', error)
+          reject(error)
+        }
+      })
+    } catch (error) {
+      console.error('executeTransaction genel hata:', error)
+      throw error
+    }
   }
 
   // Doctor operations
   const addDoctor = async (doctor) => {
-    console.log('addDoctor çağrıldı:', doctor)
-    return new Promise((resolve, reject) => {
-      executeTransaction(['doctors'], 'readwrite', (transaction) => {
-        const store = transaction.objectStore('doctors')
-        const request = store.add(doctor)
-        request.onsuccess = () => {
-          console.log('Doktor başarıyla eklendi:', doctor.id)
-          resolve(doctor)
-        }
-        request.onerror = (event) => {
-          console.error('Doktor ekleme hatası:', event.target.error)
-          reject(event.target.error)
-        }
-      }).catch((error) => {
-        console.error('executeTransaction hatası:', error)
-        reject(error)
+    try {
+      console.log('addDoctor çağrıldı:', doctor)
+      return new Promise((resolve, reject) => {
+        executeTransaction(['doctors'], 'readwrite', (transaction) => {
+          const store = transaction.objectStore('doctors')
+          const request = store.add(doctor)
+          request.onsuccess = () => {
+            console.log('Doktor başarıyla eklendi:', doctor.id)
+            resolve(doctor)
+          }
+          request.onerror = (event) => {
+            console.error('Doktor ekleme hatası:', event.target.error)
+            reject(event.target.error)
+          }
+        }).catch((error) => {
+          console.error('executeTransaction hatası:', error)
+          reject(error)
+        })
       })
-    })
+    } catch (error) {
+      console.error('addDoctor genel hata:', error)
+      throw error
+    }
   }
 
   const getDoctors = async () => {
-    console.log('getDoctors çağrıldı')
-    return new Promise((resolve, reject) => {
-      executeTransaction(['doctors'], 'readonly', (transaction) => {
-        const store = transaction.objectStore('doctors')
-        const request = store.getAll()
-        request.onsuccess = (event) => {
-          console.log('getDoctors sonucu:', event.target.result)
-          resolve(event.target.result || [])
-        }
-        request.onerror = (event) => {
-          console.error('getDoctors hatası:', event.target.error)
-          reject(event.target.error)
-        }
-      }).catch((error) => {
-        console.error('executeTransaction hatası (getDoctors):', error)
-        // Hata durumunda boş array döndür
-        resolve([])
+    try {
+      console.log('getDoctors çağrıldı')
+      return new Promise((resolve, reject) => {
+        executeTransaction(['doctors'], 'readonly', (transaction) => {
+          const store = transaction.objectStore('doctors')
+          const request = store.getAll()
+          request.onsuccess = (event) => {
+            console.log('getDoctors sonucu:', event.target.result)
+            resolve(event.target.result || [])
+          }
+          request.onerror = (event) => {
+            console.error('getDoctors hatası:', event.target.error)
+            reject(event.target.error)
+          }
+        }).catch((error) => {
+          console.error('executeTransaction hatası (getDoctors):', error)
+          // Hata durumunda boş array döndür
+          resolve([])
+        })
       })
-    })
+    } catch (error) {
+      console.error('getDoctors genel hata:', error)
+      return []
+    }
   }
 
   const updateDoctor = async (doctor) => {
