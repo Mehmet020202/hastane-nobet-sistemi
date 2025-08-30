@@ -109,26 +109,37 @@ const useIndexedDB = () => {
   // Doctor operations
   const addDoctor = async (doctor) => {
     console.log('addDoctor çağrıldı:', doctor)
-    return executeTransaction(['doctors'], 'readwrite', (transaction) => {
-      const store = transaction.objectStore('doctors')
-      const request = store.add(doctor)
-      request.onsuccess = () => console.log('Doktor başarıyla eklendi:', doctor.id)
-      request.onerror = (event) => console.error('Doktor ekleme hatası:', event.target.error)
+    return new Promise((resolve, reject) => {
+      executeTransaction(['doctors'], 'readwrite', (transaction) => {
+        const store = transaction.objectStore('doctors')
+        const request = store.add(doctor)
+        request.onsuccess = () => {
+          console.log('Doktor başarıyla eklendi:', doctor.id)
+          resolve(doctor)
+        }
+        request.onerror = (event) => {
+          console.error('Doktor ekleme hatası:', event.target.error)
+          reject(event.target.error)
+        }
+      }).catch(reject)
     })
   }
 
   const getDoctors = async () => {
     console.log('getDoctors çağrıldı')
-    return executeTransaction(['doctors'], 'readonly', (transaction) => {
-      const store = transaction.objectStore('doctors')
-      const request = store.getAll()
-      request.onsuccess = (event) => {
-        console.log('getDoctors sonucu:', event.target.result)
-        transaction.oncomplete = () => event.target.result
-      }
-    }).then(result => {
-      console.log('getDoctors final sonuç:', result || [])
-      return result || []
+    return new Promise((resolve, reject) => {
+      executeTransaction(['doctors'], 'readonly', (transaction) => {
+        const store = transaction.objectStore('doctors')
+        const request = store.getAll()
+        request.onsuccess = (event) => {
+          console.log('getDoctors sonucu:', event.target.result)
+          resolve(event.target.result || [])
+        }
+        request.onerror = (event) => {
+          console.error('getDoctors hatası:', event.target.error)
+          reject(event.target.error)
+        }
+      }).catch(reject)
     })
   }
 

@@ -62,7 +62,7 @@ const DoctorManagement = () => {
   }
 
   const handleSubmit = async (e) => {
-    console.log('Form submit başladı')
+    console.log('=== DOKTOR EKLEME BAŞLADI ===')
     e.preventDefault()
     
     console.log('Form data:', formData)
@@ -83,9 +83,10 @@ const DoctorManagement = () => {
         blue_days: formData.has_blue_days ? formData.blue_days : []
       }
 
-      console.log('Doktor ekleniyor:', doctorData)
+      console.log('Doktor verisi hazırlandı:', doctorData)
 
       if (editingDoctor) {
+        console.log('Doktor güncelleniyor...')
         await updateDoctor({ ...doctorData, id: editingDoctor.id })
         alert('Doktor başarıyla güncellendi!')
       } else {
@@ -94,24 +95,32 @@ const DoctorManagement = () => {
           id: crypto.randomUUID(),
           created_at: new Date().toISOString()
         }
-        console.log('Yeni doktor:', newDoctor)
+        console.log('Yeni doktor oluşturuldu:', newDoctor)
+        
+        console.log('addDoctor fonksiyonu çağrılıyor...')
         await addDoctor(newDoctor)
+        console.log('addDoctor tamamlandı')
+        
         alert('Doktor başarıyla eklendi!')
       }
       
       // Doktorları yeniden yükle ve state'i güncelle
-      console.log('Doktorlar yeniden yükleniyor...')
+      console.log('=== DOKTORLAR YENİDEN YÜKLENİYOR ===')
       const updatedDoctors = await getDoctors()
-      console.log('Güncel doktor listesi:', updatedDoctors)
+      console.log('getDoctors sonucu:', updatedDoctors)
+      console.log('Doktor sayısı:', updatedDoctors.length)
+      
+      console.log('setDoctors çağrılıyor...')
       setDoctors(updatedDoctors)
+      console.log('setDoctors tamamlandı')
       
       console.log('Form reset ediliyor...')
       resetForm()
       console.log('Dialog kapatılıyor...')
       setIsDialogOpen(false)
-      console.log('İşlem tamamlandı')
+      console.log('=== İŞLEM TAMAMLANDI ===')
     } catch (error) {
-      console.error('Error saving doctor:', error)
+      console.error('=== HATA OLUŞTU ===', error)
       alert('Doktor kaydedilirken hata oluştu: ' + error.message)
     }
   }
