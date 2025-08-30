@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Download, FileText, Table, Calendar, Users } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -19,9 +19,9 @@ const ExportPage = () => {
 
   useEffect(() => {
     loadData()
-  }, [selectedMonth, selectedYear])
+  }, [selectedMonth, selectedYear, loadData])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [doctorList, dutyList] = await Promise.all([
         getDoctors(),
@@ -32,7 +32,7 @@ const ExportPage = () => {
     } catch (error) {
       console.error('Error loading data:', error)
     }
-  }
+  }, [getDoctors, getDuties, selectedYear, selectedMonth])
 
   const handleExportHTML = async () => {
     setIsExporting(true)

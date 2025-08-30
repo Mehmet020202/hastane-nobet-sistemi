@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card.jsx'
 import { useIndexedDB } from '../hooks/useIndexedDB.js'
@@ -10,9 +10,9 @@ const DebugPage = () => {
 
   useEffect(() => {
     updateDebugInfo()
-  }, [isDBReady])
+  }, [isDBReady, updateDebugInfo])
 
-  const updateDebugInfo = async () => {
+  const updateDebugInfo = useCallback(async () => {
     const info = {
       isDBReady,
       userAgent: navigator.userAgent,
@@ -20,7 +20,7 @@ const DebugPage = () => {
       timestamp: new Date().toISOString()
     }
     setDebugInfo(info)
-  }
+  }, [isDBReady])
 
   const testAddDoctor = async () => {
     try {

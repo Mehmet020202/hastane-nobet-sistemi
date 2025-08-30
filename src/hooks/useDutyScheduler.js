@@ -147,6 +147,9 @@ const useDutyScheduler = () => {
     const daysInMonth = new Date(year, month, 0).getDate()
     const schedule = []
 
+    // Dinamik vardiya gereksinimleri hesaplama - ÖNCE YAPILMALI
+    const dutyCalculation = calculateDutyRequirements(doctors, year, month, settings)
+
     // Load doctor constraints
     const doctorConstraints = await Promise.all(
       doctors.map(async (doctor) => {
@@ -165,9 +168,6 @@ const useDutyScheduler = () => {
         }
       })
     )
-
-    // Dinamik vardiya gereksinimleri hesaplama
-    const dutyCalculation = calculateDutyRequirements(doctors, year, month, settings)
 
     // Generate schedule for each day
     for (let day = 1; day <= daysInMonth; day++) {
@@ -219,7 +219,7 @@ const useDutyScheduler = () => {
       const total16hHours = daily16hCount * 16
       
       // 00:00-08:00 arası (8 saat) sadece 24 saatlik nöbetçiler var
-      const nightHours = 8
+      // const nightHours = 8
       const dayHours = 16
       
       // Günlük toplam nöbetçi saati hesaplama

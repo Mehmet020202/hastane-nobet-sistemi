@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ChevronLeft, ChevronRight, Calendar, RefreshCw, Users, ArrowLeftRight, Edit } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -23,9 +23,9 @@ const DutyCalendar = () => {
 
   useEffect(() => {
     loadData()
-  }, [selectedMonth, selectedYear])
+  }, [selectedMonth, selectedYear, loadData])
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       const [doctorList, dutyList] = await Promise.all([
         getDoctors(),
@@ -36,9 +36,14 @@ const DutyCalendar = () => {
     } catch (error) {
       console.error('Error loading data:', error)
     }
-  }
+  }, [getDoctors, getDuties, selectedYear, selectedMonth])
 
   const generateSchedule = async () => {
+    console.log('=== NÖBET PROGRAMI OLUŞTURMA BAŞLADI ===')
+    console.log('Doktor sayısı:', doctors.length)
+    console.log('Seçili ay:', selectedMonth + 1)
+    console.log('Seçili yıl:', selectedYear)
+    
     if (doctors.length === 0) {
       alert('Önce doktor ekleyiniz!')
       return
@@ -46,13 +51,27 @@ const DutyCalendar = () => {
 
     setIsGenerating(true)
     try {
+      console.log('Ayarlar yükleniyor...')
       const settings = await getSettings()
+      console.log('Ayarlar:', settings)
+      
+      console.log('Nöbet programı oluşturuluyor...')
       const schedule = await generateMonthlySchedule(doctors, selectedYear, selectedMonth + 1, settings)
+      console.log('Oluşturulan program:', schedule)
+      console.log('Program uzunluğu:', schedule.length)
+      
+      console.log('Program kaydediliyor...')
       await saveDuties(schedule)
+      console.log('Program kaydedildi')
+      
+      console.log('Veriler yeniden yükleniyor...')
       await loadData()
+      console.log('=== NÖBET PROGRAMI OLUŞTURMA TAMAMLANDI ===')
     } catch (error) {
-      console.error('Error generating schedule:', error)
-      alert('Nöbet programı oluşturulurken hata oluştu!')
+      console.error('=== NÖBET PROGRAMI OLUŞTURMA HATASI ===', error)
+      console.error('Hata detayı:', error.message)
+      console.error('Hata stack:', error.stack)
+      alert(`Nöbet programı oluşturulurken hata oluştu: ${error.message}`)
     } finally {
       setIsGenerating(false)
     }

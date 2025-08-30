@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { Plus, Edit, Trash2, Save, X, Users, Calendar, CalendarX } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -46,9 +46,9 @@ const DoctorManagement = () => {
     if (isDBReady) {
       loadDoctors()
     }
-  }, [isDBReady])
+  }, [isDBReady, loadDoctors])
 
-  const loadDoctors = async () => {
+  const loadDoctors = useCallback(async () => {
     try {
       console.log('loadDoctors fonksiyonu çağrıldı')
       const doctorList = await getDoctors()
@@ -59,7 +59,7 @@ const DoctorManagement = () => {
     } catch (error) {
       console.error('Error loading doctors:', error)
     }
-  }
+  }, [getDoctors])
 
   const handleSubmit = async (e) => {
     console.log('=== DOKTOR EKLEME BAŞLADI ===')

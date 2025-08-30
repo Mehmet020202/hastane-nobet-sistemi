@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Save, Calendar, Clock, Users, Calculator, Download, Upload, AlertCircle, CheckCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button.jsx'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card.jsx'
@@ -59,9 +59,9 @@ const DutySettings = () => {
 
   useEffect(() => {
     loadSettings()
-  }, [])
+  }, [loadSettings])
 
-  const loadSettings = async () => {
+  const loadSettings = useCallback(async () => {
     try {
       const savedSettings = await getSettings()
       if (savedSettings) {
@@ -70,7 +70,7 @@ const DutySettings = () => {
     } catch (error) {
       console.error('Error loading settings:', error)
     }
-  }
+  }, [getSettings])
 
   const handleSave = async () => {
     try {
@@ -515,8 +515,8 @@ const DutySettings = () => {
                         {settings.duty_requirements.auto_fill_8h && (
                           <>
                                                     {(() => {
-                          const total24hHours = settings.duty_requirements.daily_24h_count * 24
-                          const total16hHours = settings.duty_requirements.daily_16h_count * 16
+                          // const total24hHours = settings.duty_requirements.daily_24h_count * 24
+                          // const total16hHours = settings.duty_requirements.daily_16h_count * 16
                           
                           // 16 saatlik nöbetçiler sadece gündüz (08:00-00:00) çalışır
                           const dayHours = 16
