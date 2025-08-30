@@ -1,7 +1,7 @@
-import { useIndexedDB } from './useIndexedDB.js'
-
-const useDutyScheduler = () => {
-  const { getRedDays, getSpecialAssignments } = useIndexedDB()
+const useDutyScheduler = (indexedDBFunctions = null) => {
+  // IndexedDB fonksiyonlarını parametre olarak al
+  const getRedDays = indexedDBFunctions?.getRedDays || (() => Promise.resolve([]))
+  const getSpecialAssignments = indexedDBFunctions?.getSpecialAssignments || (() => Promise.resolve({}))
 
   // Dinamik nöbet hesaplama fonksiyonu
   const calculateDutyRequirements = (doctors, year, month, settings = null) => {

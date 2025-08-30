@@ -18,8 +18,8 @@ const DutyCalendar = () => {
   const [selectedDuty, setSelectedDuty] = useState(null)
   const [swapTarget, setSwapTarget] = useState(null)
 
-  const { getDoctors, getDuties, saveDuties, getSettings } = useIndexedDB()
-  const { generateMonthlySchedule } = useDutyScheduler()
+  const { getDoctors, getDuties, saveDuties, getSettings, getRedDays, getSpecialAssignments } = useIndexedDB()
+  const { generateMonthlySchedule } = useDutyScheduler({ getRedDays, getSpecialAssignments })
 
   useEffect(() => {
     loadData()
