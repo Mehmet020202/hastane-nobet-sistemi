@@ -19,8 +19,8 @@ const DutyCalendar = () => {
   const [selectedDuty, setSelectedDuty] = useState(null)
   const [swapTarget, setSwapTarget] = useState(null)
 
-  const { getDoctors, getDuties, saveDuties } = useIndexedDB()
-  const { generateMonthlySchedule } = useDutyScheduler()
+  const { getDoctors, getDuties, saveDuties, getSettings } = useIndexedDB()
+  const { generateMonthlySchedule, calculateDutyRequirements } = useDutyScheduler()
 
   useEffect(() => {
     loadData()
@@ -47,7 +47,8 @@ const DutyCalendar = () => {
 
     setIsGenerating(true)
     try {
-      const schedule = await generateMonthlySchedule(doctors, selectedYear, selectedMonth + 1)
+      const settings = await getSettings()
+      const schedule = await generateMonthlySchedule(doctors, selectedYear, selectedMonth + 1, settings)
       await saveDuties(schedule)
       await loadData()
     } catch (error) {
@@ -78,6 +79,8 @@ const DutyCalendar = () => {
 
   const getShiftLabel = (shiftType) => {
     switch (shiftType) {
+      case 'duty_24h': return '24 Saat'
+      case 'duty_16h': return '16 Saat'
       case 'morning': return 'Sabah'
       case 'evening': return 'Akşam'
       case 'night': return 'Gece'
@@ -87,6 +90,8 @@ const DutyCalendar = () => {
 
   const getShiftColor = (shiftType) => {
     switch (shiftType) {
+      case 'duty_24h': return 'bg-purple-100 text-purple-800'
+      case 'duty_16h': return 'bg-indigo-100 text-indigo-800'
       case 'morning': return 'bg-yellow-100 text-yellow-800'
       case 'evening': return 'bg-orange-100 text-orange-800'
       case 'night': return 'bg-blue-100 text-blue-800'

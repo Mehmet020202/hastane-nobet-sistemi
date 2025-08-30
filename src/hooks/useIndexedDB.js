@@ -243,6 +243,120 @@ const useIndexedDB = () => {
     }).then(result => result || null)
   }
 
+  // Backup and restore operations
+  const exportAllData = async () => {
+    const database = await getDB()
+    const backup = {
+      version: '1.0',
+      timestamp: new Date().toISOString(),
+      data: {}
+    }
+
+    // Export doctors
+    backup.data.doctors = await executeTransaction(['doctors'], 'readonly', (transaction) => {
+      const store = transaction.objectStore('doctors')
+      const request = store.getAll()
+      request.onsuccess = (event) => transaction.oncomplete = () => event.target.result
+    }).then(result => result || [])
+
+    // Export duties
+    backup.data.duties = await executeTransaction(['duties'], 'readonly', (transaction) => {
+      const store = transaction.objectStore('duties')
+      const request = store.getAll()
+      request.onsuccess = (event) => transaction.oncomplete = () => event.target.result
+    }).then(result => result || [])
+
+    // Export settings
+    backup.data.settings = await executeTransaction(['settings'], 'readonly', (transaction) => {
+      const store = transaction.objectStore('settings')
+      const request = store.getAll()
+      request.onsuccess = (event) => transaction.oncomplete = () => event.target.result
+    }).then(result => result || [])
+
+    // Export red days
+    backup.data.red_days = await executeTransaction(['red_days'], 'readonly', (transaction) => {
+      const store = transaction.objectStore('red_days')
+      const request = store.getAll()
+      request.onsuccess = (event) => transaction.oncomplete = () => event.target.result
+    }).then(result => result || [])
+
+    // Export special assignments
+    backup.data.special_assignments = await executeTransaction(['special_assignments'], 'readonly', (transaction) => {
+      const store = transaction.objectStore('special_assignments')
+      const request = store.getAll()
+      request.onsuccess = (event) => transaction.oncomplete = () => event.target.result
+    }).then(result => result || [])
+
+    return backup
+  }
+
+  const importAllData = async (backupData) => {
+    if (!backupData || !backupData.data) {
+      throw new Error('Geçersiz yedek dosyası!')
+    }
+
+    const database = await getDB()
+
+    // Clear all existing data first
+    await executeTransaction(['doctors', 'duties', 'settings', 'red_days', 'special_assignments'], 'readwrite', (transaction) => {
+      transaction.objectStore('doctors').clear()
+      transaction.objectStore('duties').clear()
+      transaction.objectStore('settings').clear()
+      transaction.objectStore('red_days').clear()
+      transaction.objectStore('special_assignments').clear()
+    })
+
+    // Import doctors
+    if (backupData.data.doctors && backupData.data.doctors.length > 0) {
+      await executeTransaction(['doctors'], 'readwrite', (transaction) => {
+        const store = transaction.objectStore('doctors')
+        backupData.data.doctors.forEach(doctor => {
+          store.add(doctor)
+        })
+      })
+    }
+
+    // Import duties
+    if (backupData.data.duties && backupData.data.duties.length > 0) {
+      await executeTransaction(['duties'], 'readwrite', (transaction) => {
+        const store = transaction.objectStore('duties')
+        backupData.data.duties.forEach(duty => {
+          store.add(duty)
+        })
+      })
+    }
+
+    // Import settings
+    if (backupData.data.settings && backupData.data.settings.length > 0) {
+      await executeTransaction(['settings'], 'readwrite', (transaction) => {
+        const store = transaction.objectStore('settings')
+        backupData.data.settings.forEach(setting => {
+          store.add(setting)
+        })
+      })
+    }
+
+    // Import red days
+    if (backupData.data.red_days && backupData.data.red_days.length > 0) {
+      await executeTransaction(['red_days'], 'readwrite', (transaction) => {
+        const store = transaction.objectStore('red_days')
+        backupData.data.red_days.forEach(redDay => {
+          store.add(redDay)
+        })
+      })
+    }
+
+    // Import special assignments
+    if (backupData.data.special_assignments && backupData.data.special_assignments.length > 0) {
+      await executeTransaction(['special_assignments'], 'readwrite', (transaction) => {
+        const store = transaction.objectStore('special_assignments')
+        backupData.data.special_assignments.forEach(assignment => {
+          store.add(assignment)
+        })
+      })
+    }
+  }
+
   return {
     isDBReady,
     addDoctor,
@@ -257,7 +371,9 @@ const useIndexedDB = () => {
     addSpecialAssignment,
     getSpecialAssignments,
     saveSettings,
-    getSettings
+    getSettings,
+    exportAllData,
+    importAllData
   }
 }
 

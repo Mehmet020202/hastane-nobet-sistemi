@@ -3,7 +3,76 @@ import { useIndexedDB } from './useIndexedDB.js'
 const useDutyScheduler = () => {
   const { getRedDays, getSpecialAssignments } = useIndexedDB()
 
-  const generateMonthlySchedule = async (doctors, year, month) => {
+  // Dinamik nöbet hesaplama fonksiyonu
+  const calculateDutyRequirements = (doctors, year, month, settings = null) => {
+    const daysInMonth = new Date(year, month, 0).getDate()
+    const doctorCount = doctors.length
+    
+    if (doctorCount === 0) return { duty_24h: 0, duty_16h: 0, morning: 0, evening: 0, night: 0 }
+    
+    // Ayarlanabilir nöbet sayıları (varsayılan değerler)
+    const duty24hPerDoctor = settings?.duty_requirements?.duty_24h_per_doctor || 6
+    const duty16hPerDoctor = settings?.duty_requirements?.duty_16h_per_doctor || 2
+    const duty8hPerDoctor = settings?.duty_requirements?.enable_8h_duties ? (settings?.duty_requirements?.duty_8h_per_doctor || 0) : 0
+    
+    // Günlük nöbet sayıları
+    const daily24hCount = settings?.duty_requirements?.daily_24h_count || 3
+    const daily16hCount = settings?.duty_requirements?.daily_16h_count || 1
+    const autoFill8h = settings?.duty_requirements?.auto_fill_8h || false
+    
+    // Toplam nöbet saatleri
+    const totalDuty24h = duty24hPerDoctor * doctorCount
+    const totalDuty16h = duty16hPerDoctor * doctorCount
+    
+    // Toplam nöbet saatleri hesaplama
+    const totalRequiredHours = daysInMonth * 24 // Günlük 24 saat nöbet gerekli
+    
+    // 24 ve 16 saatlik nöbetlerin toplam saati
+    const totalFixedHours = (totalDuty24h * 24) + (totalDuty16h * 16)
+    
+    // Kalan saatler için 8 saatlik vardiyalar (sadece auto_fill aktifse)
+    let totalExtra8hShifts = 0
+    if (autoFill8h) {
+      const remainingHours = Math.max(0, totalRequiredHours - totalFixedHours)
+      totalExtra8hShifts = Math.ceil(remainingHours / 8)
+    }
+    
+    // Toplam 8 saatlik vardiyalar (sabit + ek)
+    const total8hShifts = duty8hPerDoctor * doctorCount + totalExtra8hShifts
+    
+    // 8 saatlik vardiyaların dağılımı
+    const morningShifts = Math.ceil(total8hShifts * 0.4)  // %40 sabah
+    const eveningShifts = Math.ceil(total8hShifts * 0.35) // %35 akşam
+    const nightShifts = Math.ceil(total8hShifts * 0.25)   // %25 gece
+    
+    // Günlük vardiya sayıları
+    const dailyShifts = {
+      duty_24h: Math.ceil(totalDuty24h / daysInMonth),
+      duty_16h: Math.ceil(totalDuty16h / daysInMonth),
+      morning: Math.ceil(morningShifts / daysInMonth),
+      evening: Math.ceil(eveningShifts / daysInMonth),
+      night: Math.ceil(nightShifts / daysInMonth)
+    }
+    
+    return {
+      requirements: dailyShifts,
+      perDoctor: {
+        duty_24h: duty24hPerDoctor,
+        duty_16h: duty16hPerDoctor,
+        duty_8h: duty8hPerDoctor,
+        total_8h: Math.ceil(total8hShifts / doctorCount)
+      },
+      total: {
+        duty_24h: totalDuty24h,
+        duty_16h: totalDuty16h,
+        duty_8h: totalDuty8h,
+        total_8h: total8hShifts,
+        remaining_hours: remainingHours
+      }
+    }
+  }
+
+  const generateMonthlySchedule = async (doctors, year, month, settings = null) => {
     if (!doctors || doctors.length === 0) {
       throw new Error('Doktor listesi boş!')
     }
@@ -22,20 +91,18 @@ const useDutyScheduler = () => {
           redDays: redDays || [],
           blueDays: doctor.blue_days || [],
           specialAssignments: specialAssignments || {},
-          remainingDuties24h: doctor.duty_rights_24h || 6,
-          remainingDuties16h: doctor.duty_rights_16h || 2,
+          remainingDuties24h: dutyCalculation.perDoctor.duty_24h,
+          remainingDuties16h: dutyCalculation.perDoctor.duty_16h,
+          remainingDuties8h: dutyCalculation.perDoctor.total_8h,
           lastDutyDate: null,
           dutyDates: [] // Track all duty dates for gün aşırı rule
         }
       })
     )
 
-    // Shift requirements per day
-    const shiftRequirements = {
-      morning: 4,   // 08:00-16:00 (8 hours)
-      evening: 4,   // 16:00-24:00 (8 hours)
-      night: 3      // 00:00-08:00 (8 hours)
-    }
+    // Dinamik vardiya gereksinimleri hesaplama
+    const dutyCalculation = calculateDutyRequirements(doctors, year, month, settings)
+    const shiftRequirements = dutyCalculation.requirements
 
     // Generate schedule for each day
     for (let day = 1; day <= daysInMonth; day++) {
@@ -45,6 +112,12 @@ const useDutyScheduler = () => {
       // Check if it's a blue day (weekend)
       const date = new Date(year, month - 1, day)
       const isWeekend = date.getDay() === 0 || date.getDay() === 6 // Sunday or Saturday
+
+      // Günlük nöbet sayıları (ayarlardan al)
+      const daily24hCount = settings?.duty_requirements?.daily_24h_count || 3
+      const daily16hCount = settings?.duty_requirements?.daily_16h_count || 1
+      const autoFill8h = settings?.duty_requirements?.auto_fill_8h || false
+      const sameDayRest = settings?.duty_requirements?.same_day_rest || false
 
       // Process special assignments first
       const daySpecialAssignments = []
@@ -60,20 +133,54 @@ const useDutyScheduler = () => {
           })
           
           // Update doctor's remaining duties
-          if (shiftType === 'night') {
+          if (shiftType === 'duty_24h') {
+            doctor.remainingDuties24h = Math.max(0, doctor.remainingDuties24h - 1)
+          } else if (shiftType === 'duty_16h') {
             doctor.remainingDuties16h = Math.max(0, doctor.remainingDuties16h - 1)
           } else {
-            doctor.remainingDuties24h = Math.max(0, doctor.remainingDuties24h - 1)
+            doctor.remainingDuties8h = Math.max(0, doctor.remainingDuties8h - 1)
           }
           doctor.lastDutyDate = dateStr
+          doctor.dutyDates.push(dateStr)
         }
       })
 
       // Add special assignments to schedule
       schedule.push(...daySpecialAssignments)
 
+      // Günlük nöbet gereksinimleri - 24 saat tamamen doldurulmalı
+      const total24hHours = daily24hCount * 24
+      const total16hHours = daily16hCount * 16
+      const remainingHours = 24 - total24hHours - total16hHours
+      
+      // Eğer toplam saat 24'ü aşıyorsa uyarı ver
+      if (remainingHours < 0) {
+        console.warn(`Warning: Daily hours exceed 24! 24h: ${total24hHours}, 16h: ${total16hHours}, Total: ${total24hHours + total16hHours}`)
+      }
+      
+      // Kalan saatleri 8 saatlik vardiyalarla doldur (minimum 0)
+      const total8hShifts = Math.max(0, Math.ceil(remainingHours / 8))
+      const morningShifts = Math.ceil(total8hShifts * 0.4)  // %40 sabah
+      const eveningShifts = Math.ceil(total8hShifts * 0.35) // %35 akşam
+      const nightShifts = Math.ceil(total8hShifts * 0.25)   // %25 gece
+      
+      // Eğer toplam vardiya sayısı hesaplanan sayıdan farklıysa, farkı gece vardiyasına ekle
+      const calculatedTotal = morningShifts + eveningShifts + nightShifts
+      const difference = total8hShifts - calculatedTotal
+      if (difference > 0) {
+        nightShifts += difference
+      }
+      
+      const dailyRequirements = {
+        duty_24h: daily24hCount,
+        duty_16h: daily16hCount,
+        morning: autoFill8h ? morningShifts : 0,
+        evening: autoFill8h ? eveningShifts : 0,
+        night: autoFill8h ? nightShifts : 0
+      }
+
       // Calculate remaining requirements after special assignments
-      const remainingRequirements = { ...shiftRequirements }
+      const remainingRequirements = { ...dailyRequirements }
       daySpecialAssignments.forEach(assignment => {
         remainingRequirements[assignment.shift_type] = Math.max(0, remainingRequirements[assignment.shift_type] - 1)
       })
@@ -88,27 +195,69 @@ const useDutyScheduler = () => {
           dateStr,
           requiredCount,
           isWeekend,
-          daySpecialAssignments.map(a => a.doctor_id)
+          daySpecialAssignments.map(a => a.doctor_id),
+          sameDayRest
         )
 
         assignedDoctors.forEach(doctorId => {
-          schedule.push({
-            doctor_id: doctorId,
-            shift_type: shiftType,
-            date: dateStr,
-            year_month: yearMonth,
-            is_special: false
-          })
+          // 24 saatlik nöbet için özel mantık
+          if (shiftType === 'duty_24h') {
+            // 24 saatlik nöbet ertesi güne kadar sürer
+            const startDate = new Date(dateStr)
+            const endDate = new Date(startDate)
+            endDate.setDate(endDate.getDate() + 1)
+            const endDateStr = endDate.toISOString().split('T')[0]
+            
+            schedule.push({
+              doctor_id: doctorId,
+              shift_type: shiftType,
+              date: dateStr,
+              end_date: endDateStr,
+              year_month: yearMonth,
+              is_special: false,
+              duration: 24
+            })
+          } else if (shiftType === 'duty_16h') {
+            // 16 saatlik nöbet aynı gün içinde biter
+            schedule.push({
+              doctor_id: doctorId,
+              shift_type: shiftType,
+              date: dateStr,
+              year_month: yearMonth,
+              is_special: false,
+              duration: 16
+            })
+          } else {
+            schedule.push({
+              doctor_id: doctorId,
+              shift_type: shiftType,
+              date: dateStr,
+              year_month: yearMonth,
+              is_special: false,
+              duration: shiftType === 'night' ? 8 : 8
+            })
+          }
 
           // Update doctor's remaining duties and last duty date
           const doctor = doctorConstraints.find(d => d.id === doctorId)
           if (doctor) {
-            if (shiftType === 'night') {
-              doctor.remainingDuties16h = Math.max(0, doctor.remainingDuties16h - 1)
-            } else {
+            if (shiftType === 'duty_24h') {
               doctor.remainingDuties24h = Math.max(0, doctor.remainingDuties24h - 1)
+              // 24 saatlik nöbet sonrası ertesi gün nöbet tutamaz
+              const nextDay = new Date(dateStr)
+              nextDay.setDate(nextDay.getDate() + 1)
+              doctor.lastDutyDate = nextDay.toISOString().split('T')[0]
+            } else if (shiftType === 'duty_16h') {
+              doctor.remainingDuties16h = Math.max(0, doctor.remainingDuties16h - 1)
+              // 16 saatlik nöbet sonrası ertesi gün nöbet tutamaz
+              const nextDay = new Date(dateStr)
+              nextDay.setDate(nextDay.getDate() + 1)
+              doctor.lastDutyDate = nextDay.toISOString().split('T')[0]
+            } else {
+              // 8 saatlik vardiyalar (morning, evening, night)
+              doctor.remainingDuties8h = Math.max(0, doctor.remainingDuties8h - 1)
+              doctor.lastDutyDate = dateStr
             }
-            doctor.lastDutyDate = dateStr
             doctor.dutyDates.push(dateStr)
           }
         })
@@ -118,7 +267,7 @@ const useDutyScheduler = () => {
     return schedule
   }
 
-  const assignShift = (doctorConstraints, shiftType, dateStr, requiredCount, isWeekend, excludedDoctorIds) => {
+  const assignShift = (doctorConstraints, shiftType, dateStr, requiredCount, isWeekend, excludedDoctorIds, sameDayRest = false) => {
     const availableDoctors = doctorConstraints.filter(doctor => {
       // Exclude doctors already assigned for this day
       if (excludedDoctorIds.includes(doctor.id)) return false
@@ -134,9 +283,14 @@ const useDutyScheduler = () => {
       }
 
       // Check if doctor has remaining duties
-      const hasRemainingDuties = shiftType === 'night' 
-        ? doctor.remainingDuties16h > 0 
-        : doctor.remainingDuties24h > 0
+      let hasRemainingDuties = false
+      if (shiftType === 'duty_24h') {
+        hasRemainingDuties = doctor.remainingDuties24h > 0
+      } else if (shiftType === 'duty_16h') {
+        hasRemainingDuties = doctor.remainingDuties16h > 0
+      } else {
+        hasRemainingDuties = doctor.remainingDuties8h > 0
+      }
 
       if (!hasRemainingDuties) return false
 
@@ -147,6 +301,16 @@ const useDutyScheduler = () => {
         const dayDifference = Math.abs((currentDate - lastDate) / (1000 * 60 * 60 * 24))
         
         if (dayDifference < 1) return false // No consecutive duties
+      }
+
+      // Aynı gün nöbet tutanlar ertesi gün nöbet almaz kuralı
+      if (sameDayRest && doctor.dutyDates.length > 0) {
+        const lastDutyDate = doctor.dutyDates[doctor.dutyDates.length - 1]
+        const lastDate = new Date(lastDutyDate)
+        const currentDate = new Date(dateStr)
+        const dayDifference = Math.abs((currentDate - lastDate) / (1000 * 60 * 60 * 24))
+        
+        if (dayDifference === 1) return false // Ertesi gün nöbet alamaz
       }
 
       return true
@@ -162,8 +326,20 @@ const useDutyScheduler = () => {
       if (!aIsBlueDay && bIsBlueDay) return 1
       
       // Sonra kalan nöbet hakkı fazla olanlar
-      const aDuties = shiftType === 'night' ? a.remainingDuties16h : a.remainingDuties24h
-      const bDuties = shiftType === 'night' ? b.remainingDuties16h : b.remainingDuties24h
+      let aDuties = 0
+      let bDuties = 0
+      
+      if (shiftType === 'duty_24h') {
+        aDuties = a.remainingDuties24h
+        bDuties = b.remainingDuties24h
+      } else if (shiftType === 'duty_16h') {
+        aDuties = a.remainingDuties16h
+        bDuties = b.remainingDuties16h
+      } else {
+        aDuties = a.remainingDuties8h
+        bDuties = b.remainingDuties8h
+      }
+      
       return bDuties - aDuties
     })
 

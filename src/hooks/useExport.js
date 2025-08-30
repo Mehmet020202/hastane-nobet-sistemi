@@ -100,6 +100,8 @@ const useExport = () => {
           .schedule-table tr:hover {
             background-color: #e3f2fd;
           }
+          .shift-duty24h { color: #9b59b6; font-weight: bold; }
+          .shift-duty16h { color: #3498db; font-weight: bold; }
           .shift-morning { color: #e67e22; font-weight: bold; }
           .shift-evening { color: #e74c3c; font-weight: bold; }
           .shift-night { color: #8e44ad; font-weight: bold; }
@@ -160,6 +162,8 @@ const useExport = () => {
               <tr>
                 <th>Tarih</th>
                 <th>Gün</th>
+                <th>24 Saat Nöbet (08:00-08:00)</th>
+                <th>16 Saat Nöbet (08:00-00:00)</th>
                 <th>Sabah (08:00-16:00)</th>
                 <th>Akşam (16:00-24:00)</th>
                 <th>Gece (00:00-08:00)</th>
@@ -177,6 +181,8 @@ const useExport = () => {
       const dayName = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'][dateObj.getDay()]
       const formattedDate = `${dateObj.getDate()}/${dateObj.getMonth() + 1}/${dateObj.getFullYear()}`
       
+      const duty24hDoctors = dayDuties.duty_24h ? dayDuties.duty_24h.map(d => getDoctorName(d.doctor_id)).join(', ') : '-'
+      const duty16hDoctors = dayDuties.duty_16h ? dayDuties.duty_16h.map(d => getDoctorName(d.doctor_id)).join(', ') : '-'
       const morningDoctors = dayDuties.morning ? dayDuties.morning.map(d => getDoctorName(d.doctor_id)).join(', ') : '-'
       const eveningDoctors = dayDuties.evening ? dayDuties.evening.map(d => getDoctorName(d.doctor_id)).join(', ') : '-'
       const nightDoctors = dayDuties.night ? dayDuties.night.map(d => getDoctorName(d.doctor_id)).join(', ') : '-'
@@ -185,6 +191,8 @@ const useExport = () => {
         <tr>
           <td>${formattedDate}</td>
           <td>${dayName}</td>
+          <td class="shift-duty24h">${duty24hDoctors}</td>
+          <td class="shift-duty16h">${duty16hDoctors}</td>
           <td class="shift-morning">${morningDoctors}</td>
           <td class="shift-evening">${eveningDoctors}</td>
           <td class="shift-night">${nightDoctors}</td>
