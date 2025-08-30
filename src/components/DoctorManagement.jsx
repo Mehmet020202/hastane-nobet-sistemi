@@ -17,7 +17,17 @@ import { useIndexedDB } from '../hooks/useIndexedDB.js'
 
 const DoctorManagement = () => {
   const [doctors, setDoctors] = useState([])
+  
+  // Debug için doctors state değişikliklerini izle
+  useEffect(() => {
+    console.log('doctors state değişti:', doctors)
+  }, [doctors])
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  
+  // Debug için isDialogOpen değişikliklerini izle
+  useEffect(() => {
+    console.log('isDialogOpen değişti:', isDialogOpen)
+  }, [isDialogOpen])
   const [editingDoctor, setEditingDoctor] = useState(null)
   const [formData, setFormData] = useState({
     name: '',
@@ -40,10 +50,21 @@ const DoctorManagement = () => {
 
   const loadDoctors = async () => {
     try {
-      console.log('Doktorlar yükleniyor...')
+      console.log('loadDoctors fonksiyonu çağrıldı')
       const doctorList = await getDoctors()
-      console.log('Yüklenen doktorlar:', doctorList)
-      setDoctors(doctorList)
+      console.log('getDoctors sonucu:', doctorList)
+      console.log('doctors state güncelleniyor...')
+      
+      // State güncellemesini zorla
+      setDoctors([...doctorList])
+      
+      // State güncellemesini kontrol et
+      setTimeout(() => {
+        console.log('doctors state kontrol ediliyor...')
+        console.log('Mevcut doctors state:', doctors)
+      }, 100)
+      
+      console.log('doctors state güncellendi, yeni değer:', doctorList)
     } catch (error) {
       console.error('Error loading doctors:', error)
     }
@@ -89,8 +110,15 @@ const DoctorManagement = () => {
       
       console.log('Doktorlar yeniden yükleniyor...')
       await loadDoctors()
+      
+      // State güncellemesini bekle
+      await new Promise(resolve => setTimeout(resolve, 200))
+      
+      console.log('Form reset ediliyor...')
       resetForm()
+      console.log('Dialog kapatılıyor...')
       setIsDialogOpen(false)
+      console.log('İşlem tamamlandı')
     } catch (error) {
       console.error('Error saving doctor:', error)
       alert('Doktor kaydedilirken hata oluştu: ' + error.message)
@@ -124,6 +152,7 @@ const DoctorManagement = () => {
   }
 
   const resetForm = () => {
+    console.log('resetForm çağrıldı')
     setFormData({
       name: '',
       specialty: '',
@@ -135,6 +164,7 @@ const DoctorManagement = () => {
       blue_days: []
     })
     setEditingDoctor(null)
+    console.log('resetForm tamamlandı')
   }
 
   const handleInputChange = (field, value) => {
