@@ -30,7 +30,7 @@ const DutySettings = () => {
       daily_16h_count: 1,      // Günlük 16 saatlik nöbet sayısı
       auto_fill_8h: true,      // Boş saatleri 8 saatlik nöbetlerle doldur
       same_day_rest: true      // Aynı gün nöbet tutanlar ertesi gün nöbet almaz
-    }
+    },
     rules: {
       no_consecutive_duties: true,
       equal_distribution: true,
