@@ -1,3 +1,4 @@
+# SPA routing
 /*    /index.html   200
 
 # JavaScript MIME type headers
@@ -7,3 +8,6 @@
 # CSS MIME type headers  
 /assets/*.css
   Content-Type: text/css
+
+# Prevent 404 for assets
+/assets/*  /index.html  200
