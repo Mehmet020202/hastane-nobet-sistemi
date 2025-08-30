@@ -56,6 +56,22 @@ Bu proje Netlify'da deploy edilmek üzere hazırlanmıştır:
 4. Build komutu: `npm run build`
 5. Publish directory: `dist`
 
+### Cache Sorunları İçin
+
+Eğer Netlify'da cache sorunları yaşıyorsanız:
+
+1. **Tarayıcı Cache'ini Temizleyin**: Ctrl+Shift+R (Windows) veya Cmd+Shift+R (Mac)
+2. **Netlify Cache'ini Temizleyin**: Netlify dashboard'da "Deploy" > "Trigger deploy" > "Clear cache and deploy"
+3. **Service Worker'ı Güncelleyin**: Tarayıcıda F12 > Application > Service Workers > "Unregister"
+4. **IndexedDB'yi Temizleyin**: F12 > Application > Storage > IndexedDB > "Clear storage"
+
+### Son Güncellemeler
+
+- ✅ Doktor ekleme dialog sorunu çözüldü
+- ✅ IndexedDB transaction hataları düzeltildi
+- ✅ Cache-busting eklendi
+- ✅ Hata yakalama mekanizmaları iyileştirildi
+
 ## 📱 Mobil Uyumluluk
 
 - Chrome, Opera ve diğer tüm tarayıcılarda çalışır
