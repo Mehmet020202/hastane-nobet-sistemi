@@ -8,6 +8,11 @@ import { Switch } from '@/components/ui/switch.jsx'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog.jsx'
 import { Badge } from '@/components/ui/badge.jsx'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs.jsx'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover.jsx'
+import { Calendar as CalendarIcon } from 'lucide-react'
+import { format } from 'date-fns'
+import { tr } from 'date-fns/locale'
+import { Calendar as CalendarComponent } from '@/components/ui/calendar.jsx'
 import { useIndexedDB } from '../hooks/useIndexedDB.js'
 
 const DoctorManagement = () => {
@@ -139,35 +144,11 @@ const DoctorManagement = () => {
     }))
   }
 
-  const addRedDay = () => {
-    const dateInput = document.getElementById('red-day-input')
-    const date = dateInput.value
-    if (date && !formData.red_days.includes(date)) {
-      setFormData(prev => ({
-        ...prev,
-        red_days: [...prev.red_days, date]
-      }))
-      dateInput.value = ''
-    }
-  }
-
   const removeRedDay = (date) => {
     setFormData(prev => ({
       ...prev,
       red_days: prev.red_days.filter(d => d !== date)
     }))
-  }
-
-  const addBlueDay = () => {
-    const dateInput = document.getElementById('blue-day-input')
-    const date = dateInput.value
-    if (date && !formData.blue_days.includes(date)) {
-      setFormData(prev => ({
-        ...prev,
-        blue_days: [...prev.blue_days, date]
-      }))
-      dateInput.value = ''
-    }
   }
 
   const removeBlueDay = (date) => {
@@ -283,19 +264,40 @@ const DoctorManagement = () => {
                   {formData.has_red_days && (
                     <div className="space-y-4">
                       <div className="flex space-x-2">
-                        <Input
-                          id="red-day-input"
-                          type="date"
-                          placeholder="Kırmızı gün seçin"
-                        />
-                        <Button type="button" onClick={addRedDay}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {formData.red_days.length > 0 
+                                ? `${formData.red_days.length} gün seçildi`
+                                : "Kırmızı gün seçin"
+                              }
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="multiple"
+                              selected={formData.red_days.map(date => new Date(date))}
+                              onSelect={(dates) => {
+                                const dateStrings = dates ? dates.map(date => format(date, 'yyyy-MM-dd')) : []
+                                setFormData(prev => ({
+                                  ...prev,
+                                  red_days: dateStrings
+                                }))
+                              }}
+                              initialFocus
+                              locale={tr}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                       <div className="space-y-2">
                         {formData.red_days.map((date) => (
                           <div key={date} className="flex items-center justify-between p-2 bg-red-50 rounded">
-                            <span>{new Date(date).toLocaleDateString('tr-TR')}</span>
+                            <span>{format(new Date(date), 'dd MMMM yyyy, EEEE', { locale: tr })}</span>
                             <Button
                               type="button"
                               variant="ghost"
@@ -324,19 +326,40 @@ const DoctorManagement = () => {
                   {formData.has_blue_days && (
                     <div className="space-y-4">
                       <div className="flex space-x-2">
-                        <Input
-                          id="blue-day-input"
-                          type="date"
-                          placeholder="Mavi gün seçin"
-                        />
-                        <Button type="button" onClick={addBlueDay}>
-                          <Plus className="h-4 w-4" />
-                        </Button>
+                        <Popover>
+                          <PopoverTrigger asChild>
+                            <Button
+                              variant="outline"
+                              className="w-full justify-start text-left font-normal"
+                            >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {formData.blue_days.length > 0 
+                                ? `${formData.blue_days.length} gün seçildi`
+                                : "Mavi gün seçin"
+                              }
+                            </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0" align="start">
+                            <CalendarComponent
+                              mode="multiple"
+                              selected={formData.blue_days.map(date => new Date(date))}
+                              onSelect={(dates) => {
+                                const dateStrings = dates ? dates.map(date => format(date, 'yyyy-MM-dd')) : []
+                                setFormData(prev => ({
+                                  ...prev,
+                                  blue_days: dateStrings
+                                }))
+                              }}
+                              initialFocus
+                              locale={tr}
+                            />
+                          </PopoverContent>
+                        </Popover>
                       </div>
                       <div className="space-y-2">
                         {formData.blue_days.map((date) => (
                           <div key={date} className="flex items-center justify-between p-2 bg-blue-50 rounded">
-                            <span>{new Date(date).toLocaleDateString('tr-TR')}</span>
+                            <span>{format(new Date(date), 'dd MMMM yyyy, EEEE', { locale: tr })}</span>
                             <Button
                               type="button"
                               variant="ghost"
